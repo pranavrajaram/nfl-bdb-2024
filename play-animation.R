@@ -54,7 +54,7 @@ for_anim <- live_preds %>%
 
 # Play Animation 
 one_play = track_with_dist %>% 
-  filter(gameId == 2022110300 & playId == 168)  %>% # make sure this line 21
+  filter(gameId == 2022110300 & playId == 168)  %>% # make sure this matches line 21
   left_join(for_anim, by = c("nflId", "displayName", 'frameId')) %>% 
   replace_na(list(likely_tackler = 0))
 
