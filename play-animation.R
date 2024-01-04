@@ -105,7 +105,7 @@ base_plot = ggplot(one_play_for_plot_ball, aes(x = x, y = y)) +
   geom_point(data = one_play_for_plot_home, aes(x=x,y=y), colour = '#A71930', size = 5) + 
   geom_point(data = one_play_for_plot_away, aes(x=x,y=y), colour = if_else(one_play_for_plot_away$likely_tackler == 1, 'yellow', '#004C54'), size = 5) +
   geom_text(data = one_play_for_plot_home, aes(x = x, y = y, label = jerseyNumber), colour = 'white') +
-  #geom_text(data = one_play_for_plot_away, aes(x = x, y = y, label = jerseyNumber), colour = 'white') +
+  geom_text(data = one_play_for_plot_away, aes(x = x, y = y, label = jerseyNumber), colour = 'white') +
   geom_point(colour = 'white', size = 2)
 
 anim <- base_plot + transition_states(time,
@@ -114,4 +114,4 @@ anim <- base_plot + transition_states(time,
 
 animate(anim, width = 800, height = 400, fps = 20)
 
-anim_save('gif3.gif', animate(anim, width = 800, height = 400, fps = 20))
+anim_save('gif1.gif', animate(anim, width = 800, height = 400, fps = 20))

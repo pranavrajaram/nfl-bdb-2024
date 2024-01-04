@@ -12,6 +12,7 @@ library(xgboost)
 library(ggthemes)
 library(gt)
 library(gtExtras)
+library(ggrepel)
 setwd("~/nfl-big-data-bowl-2024")
 
 set.seed(12) # GOAT
@@ -34,8 +35,7 @@ track_8 <- read_csv('tracking_week_8.csv')
 
 track_9 <- read_csv('tracking_week_9.csv')
 
-all_track <- bind_rows(track_1, track_2, track_3, track_4, track_5, track_6, track_7, track_8, track_9)
-
+all_track <- bind_rows(track_1, track_2, track_3, track_4, track_5, track_6, track_7, track_8, track_9) # all tracking data
 
 games <- read_csv('games.csv')
 
@@ -48,6 +48,7 @@ tackles <- read_csv('tackles.csv') %>%
 
 merged_track_1 <- all_track %>% left_join(inner_join(games, plays, by = c('gameId')), by = c("gameId", 'playId')) %>% left_join(tackles, by = c('gameId', 'playId', 'nflId'))
 
+# Add player distances to football
 track_with_dist <- merged_track_1 %>%
   group_by(gameId, playId, frameId) %>% 
   mutate(footballInPlay = sum(displayName == "football") > 0) %>% 
@@ -62,12 +63,12 @@ track_with_dist <- merged_track_1 %>%
   ungroup()
 
 
+# Filter data to catchpoint
 defense_dist_at_catch <- track_with_dist %>%
   filter((club != possessionTeam) | (nflId == ballCarrierId)) %>%
   filter(displayName != 'football') %>%
   filter(event == 'pass_outcome_caught') %>%
   mutate(play_made = tackle+assist) %>%
- # mutate(play_made = as.factor(play_made)) %>%
   group_by(gameId, playId, frameId) %>%
   mutate(sBallCarrier = s[nflId == ballCarrierId],
          aBallCarrier = a[nflId == ballCarrierId],
@@ -84,19 +85,18 @@ test_data <- defense_dist_at_catch[-train_indices, ]
 
 dtrain <- xgb.DMatrix(data = as.matrix(train_data[, c('distToFootball', 's', 'a', 'sBallCarrier', 'aBallCarrier', 'dir', 'dirBallCarrier', 'o', 'oBallCarrier')]), label = train_data$play_made)
 
-params <- list(objective = "binary:logistic", max_depth = 3, eta = 0.3, nthread = 2)
+params <- list(objective = "binary:logistic", max_depth = 6, eta = 0.3, nthread = 2)
 
 xgb_model <- xgboost(data = dtrain, params = params, nrounds = 100)
 
 importance <-  xgb.importance(colnames(dtrain), model = xgb_model)
 
-
 dtest <- xgb.DMatrix(data = as.matrix(defense_dist_at_catch[, c('distToFootball', 's', 'a', 'sBallCarrier', 'aBallCarrier', 'dir', 'dirBallCarrier', 'o', 'oBallCarrier')]))
-
 
 predictions <- predict(xgb_model, newdata = dtest)
 
 
+# Apply predictions to data
 data_with_preds <- defense_dist_at_catch %>%
   mutate(pred_tackle = as.numeric(predictions),
          play_made = as.numeric(play_made)) %>% arrange(distToFootball) %>%
@@ -104,7 +104,7 @@ data_with_preds <- defense_dist_at_catch %>%
   select(nflId, displayName, gameId, playId, quarter, down, playDescription, gameDate, week, play_made, pred_tackle, distToFootball, s, a, sBallCarrier, aBallCarrier)
 
 
-
+# Identify player with highest tackle probability on each play
 full_stats <- data_with_preds %>%
   group_by(gameId, playId) %>%
   mutate(highest_prob = max(pred_tackle)) %>% 
@@ -122,6 +122,7 @@ tcl <- nflfastR::teams_colors_logos %>%
 rosters <- nflreadr::load_rosters() %>%
   select(gsis_it_id, position, headshot_url, team)
 
+# Calculate TROE
 oe <- full_stats %>%
   mutate(likely_tackler = as.numeric(likely_tackler)-1,
          play_made = as.numeric(play_made)-1) %>%
@@ -136,11 +137,10 @@ oe <- full_stats %>%
   mutate(plays_oe = plays_made - exp_plays_made) %>%
   filter(plays_made != 0 & exp_plays_made != 0) %>%
   ungroup() %>%
-  filter(plays >= 60) %>%
+  filter(plays >= 75) %>%
   mutate(nflId = as.character(nflId),
          tackle_rate = round(tackle_rate, 3),
          exp_tackle_rate = round(exp_tackle_rate, 3),
          troe = round(troe, 3)) %>%
   left_join(rosters, by = c('nflId' =  'gsis_it_id')) %>%
   left_join(tcl, by = c('team' = 'team_abbr'))
-
