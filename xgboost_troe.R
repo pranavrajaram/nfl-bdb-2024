@@ -17,6 +17,7 @@ setwd("~/nfl-big-data-bowl-2024")
 
 set.seed(12) # GOAT
 
+
 track_1 <- read_csv('tracking_week_1.csv')
 
 track_2 <- read_csv('tracking_week_2.csv')
@@ -78,6 +79,7 @@ defense_dist_at_catch <- track_with_dist %>%
   ungroup()
 
 
+# Building the model
 train_indices <- sample(1:nrow(defense_dist_at_catch), 0.6 * nrow(defense_dist_at_catch))
 train_data <- defense_dist_at_catch[train_indices, ]
 test_data <- defense_dist_at_catch[-train_indices, ]

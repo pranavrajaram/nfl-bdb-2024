@@ -25,7 +25,6 @@ tab <- oe %>%
 
 gtsave(tab, 'top10.png')
 
-
 tab
 
 # bottom 10
@@ -64,13 +63,13 @@ oe %>%
              fill = oe$team_color2,
              shape = 21,
              stroke = 1) +
-  geom_text_repel(aes(label = if_else(abs(tackle_rate - exp_tackle_rate) > 0.06 | exp_tackle_rate > 0.18, name, ''))) +
+  geom_text_repel(aes(label = if_else(abs(tackle_rate - exp_tackle_rate) > 0.0625 | exp_tackle_rate > 0.18, name, ''))) +
   theme_fivethirtyeight() +
   theme(axis.title = element_text(),
         plot.title = element_text(hjust = 0.5),
         plot.subtitle = element_text(hjust = 0.5)) +
   labs(title = 'Expected Tackle Rate vs. Tackle Rate, 2022 Weeks 1-9',
-       subtitle = 'Minimum 75 snaps on completions. R = 0.907, R^2 = 0.823',
+       subtitle = 'Minimum 75 snaps on completions. R = 0.888, R^2 = 0.788',
        x = 'Expected Tackle Rate',
        y = 'Tackle Rate') +
   geom_abline(linetype = 'dashed', color = 'red')
@@ -78,18 +77,23 @@ oe %>%
 ggsave('corplot.png',width = 11, height = 7)
 
 
+# feature importance
 importance %>%
   select(Feature, Gain) %>% 
-  ggplot(aes(x = reorder(Feature, Gain), y = Gain)) +
-  geom_bar(stat = 'identity', color = 'darkred', fill = 'white', linewidth = 2) + 
+  ggplot(aes(x = reorder(Feature, Gain), y = Gain, fill = Gain)) +
+  geom_bar(stat = 'identity', linewidth = 1) + 
+    scale_fill_gradient(low = "#F97C00", high = "#FE0000") + 
   coord_flip() +
   theme_fivethirtyeight() +
   theme(axis.title = element_text(),
         plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5)) +
+        plot.subtitle = element_text(hjust = 0.5),
+        axis.text.y = element_text(size = 15),
+        legend.position = 'none') +
   labs(title = 'XGBoost Model Feature Importance',
        x = 'Feature',
-       y = 'Importance')
+       y = 'Importance') +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))
 
 ggsave('importance.png',width = 11, height = 7)
 
